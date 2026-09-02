@@ -2100,6 +2100,74 @@ class NocApp {
     } catch (e) {}
   }
 
+  renderTicketCommentItem(m) {
+    const isBot = (m.role === 'role-bot') || (m.role === 'BOT') || (m.sender && m.sender.toLowerCase().includes('bot'));
+    const isBranch = (m.role === 'Cabang') || (m.role === 'User Cabang') || (m.role === 'CABANG') || (m.sender && (m.sender.toLowerCase().includes('pic') || m.sender.toLowerCase().includes('cabang') || m.sender.toLowerCase().includes('guru') || m.sender.toLowerCase().includes('security')));
+    const isSelf = !isBot && !isBranch;
+    
+    const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
+
+    // BOT / SYSTEM NOTIFICATION CARD (Centered)
+    if (isBot) {
+      return `
+        <div class="chat-msg-row bot-msg">
+          <div class="chat-msg-bubble">
+            <span style="font-size: 0.95rem;">🤖</span>
+            <span>${this.escapeHtml(m.text || '')}</span>
+            <span class="chat-msg-time">${timeStr}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    let avatarBg = '#7a1374';
+    if (isBranch) avatarBg = '#f37021';
+    else if (m.role === 'ENGINEER' || (m.role && m.role.toLowerCase().includes('engineer'))) avatarBg = '#0284c7';
+    else if (m.role === 'SURVEILLANCE') avatarBg = '#d97706';
+
+    let roleLabel = m.role || (isBranch ? 'CABANG' : 'IT NOC');
+    if (isBranch) roleLabel = 'CABANG';
+    else if (m.role === 'role-lead' || m.role === 'LEAD') roleLabel = 'LEAD';
+
+    let roleClass = 'role-lead';
+    if (isBranch) roleClass = 'role-cabang';
+    else if (m.role === 'role-lead' || m.role === 'LEAD') roleClass = 'role-lead';
+    else if (m.role === 'ENGINEER' || (m.role && m.role.toLowerCase().includes('engineer'))) roleClass = 'role-engineer';
+    else if (m.role === 'SURVEILLANCE') roleClass = 'role-cctv';
+
+    const cleanSender = m.sender || (isBranch ? 'PIC Cabang' : 'Staff IT');
+    const avatarInitial = (m.avatar && m.avatar.length <= 2 && m.avatar !== '👤') 
+      ? m.avatar 
+      : cleanSender.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+
+    const commentPhotos = Array.isArray(m.photos) && m.photos.length > 0 ? m.photos : (m.photo ? [m.photo] : []);
+
+    return `
+      <div class="chat-msg-row ${isSelf ? 'self-msg' : 'incoming-msg'}">
+        <div class="chat-msg-avatar" style="background: ${avatarBg};">${avatarInitial}</div>
+        <div class="chat-msg-content">
+          <div class="chat-msg-sender-row">
+            <span class="chat-msg-sender-name">${this.escapeHtml(cleanSender)}</span>
+            <span class="chat-msg-role-pill ${roleClass}">${roleLabel}</span>
+            <span class="chat-msg-time">${timeStr}</span>
+          </div>
+          <div class="chat-msg-bubble">
+            ${commentPhotos.length > 0 ? `
+              <div class="chat-photo-gallery">
+                ${commentPhotos.map((src, i) => `
+                  <div class="chat-photo-item-wrap" onclick="app.openImagePreview('${src}')" title="Klik untuk memperbesar foto">
+                    <img src="${src}" class="chat-photo-img" alt="Lampiran Foto ${i+1}">
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            ${m.text ? `<div>${this.escapeHtml(m.text)}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   updateTicketChatMessagesSmoothly(ticket, hasNewMessage) {
     const container = document.getElementById('ticket-chat-messages-container');
     if (!container) return;
@@ -2113,45 +2181,7 @@ class NocApp {
         <div style="font-size: 0.8rem; font-weight: 700;">Belum ada pesan di thread tiket ini</div>
         <div style="font-size: 0.72rem;">Kirim catatan investigasi atau update tindakan pertama</div>
       </div>
-    ` : comments.map(m => {
-      const isBot = (m.role === 'role-bot') || (m.role === 'BOT') || (m.sender && m.sender.toLowerCase().includes('bot'));
-      const isBranch = (m.role === 'Cabang') || (m.role === 'User Cabang') || (m.role === 'CABANG') || (m.sender && (m.sender.toLowerCase().includes('pic') || m.sender.toLowerCase().includes('cabang') || m.sender.toLowerCase().includes('guru') || m.sender.toLowerCase().includes('security')));
-      const isSelf = !isBot && !isBranch;
-      
-      const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
-      let avatarBg = '#7a1374';
-      if (isBranch) avatarBg = '#f37021';
-      else if (isBot) avatarBg = '#9333ea';
-      else if (m.role === 'ENGINEER' || (m.role && m.role.toLowerCase().includes('engineer'))) avatarBg = '#0284c7';
-      else if (m.role === 'SURVEILLANCE') avatarBg = '#d97706';
-
-      const commentPhotos = Array.isArray(m.photos) && m.photos.length > 0 ? m.photos : (m.photo ? [m.photo] : []);
-
-      return `
-        <div class="chat-msg ${isSelf ? 'msg-self' : (isBot ? 'msg-bot' : 'msg-incoming')}">
-          <div class="chat-avatar" style="background: ${avatarBg};">${m.avatar || '👤'}</div>
-          <div class="chat-bubble">
-            <div class="chat-sender-row">
-              <span class="chat-sender-name">${this.escapeHtml(m.sender || 'Staff')}</span>
-              <span class="chat-sender-role ${m.role || 'role-staff'}">${m.role || 'Staff'}</span>
-              <span class="chat-msg-time">${timeStr}</span>
-            </div>
-            <div class="chat-body-text">
-              ${commentPhotos.length > 0 ? `
-                <div class="chat-photo-gallery">
-                  ${commentPhotos.map((src, i) => `
-                    <div class="chat-photo-item-wrap" onclick="app.openImagePreview('${src}')" title="Klik untuk memperbesar foto">
-                      <img src="${src}" class="chat-photo-img" alt="Lampiran Foto ${i+1}">
-                    </div>
-                  `).join('')}
-                </div>
-              ` : ''}
-              ${m.text ? `<div>${this.escapeHtml(m.text)}</div>` : ''}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
+    ` : comments.map(m => this.renderTicketCommentItem(m)).join('');
 
     if (hasNewMessage || isNearBottom) {
       setTimeout(() => {
@@ -2467,58 +2497,7 @@ class NocApp {
                 <div style="font-size: 0.8rem; font-weight: 700;">Belum ada pesan di thread tiket ini</div>
                 <div style="font-size: 0.72rem;">Kirim catatan investigasi atau update tindakan pertama</div>
               </div>
-            ` : comments.map(m => {
-              const isBot = (m.role === 'role-bot') || (m.role === 'BOT') || (m.sender && m.sender.toLowerCase().includes('bot'));
-              const isBranch = (m.role === 'Cabang') || (m.role === 'User Cabang') || (m.role === 'CABANG') || (m.sender && (m.sender.toLowerCase().includes('pic') || m.sender.toLowerCase().includes('cabang') || m.sender.toLowerCase().includes('guru') || m.sender.toLowerCase().includes('security')));
-              const isSelf = !isBot && !isBranch; // IT Team messages align to the RIGHT in Dashboard
-              
-              const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
-              let avatarBg = '#7a1374';
-              if (isBranch) avatarBg = '#f37021';
-              else if (isBot) avatarBg = '#9333ea';
-              else if (m.role === 'ENGINEER' || (m.role && m.role.toLowerCase().includes('engineer'))) avatarBg = '#0284c7';
-              else if (m.role === 'SURVEILLANCE') avatarBg = '#d97706';
-
-              let roleLabel = m.role || 'IT NOC';
-              if (isBot) roleLabel = 'BOT';
-              else if (isBranch) roleLabel = 'CABANG';
-              else if (m.role === 'role-lead' || m.role === 'LEAD') roleLabel = 'LEAD';
-
-              let roleClass = 'role-lead';
-              if (isBot) roleClass = 'role-bot';
-              else if (isBranch) roleClass = 'role-cabang';
-              else if (m.role === 'role-lead' || m.role === 'LEAD') roleClass = 'role-lead';
-              else if (m.role === 'ENGINEER' || (m.role && m.role.toLowerCase().includes('engineer'))) roleClass = 'role-engineer';
-              else if (m.role === 'SURVEILLANCE') roleClass = 'role-cctv';
-
-              const avatarInitial = (m.avatar && m.avatar.length <= 2) ? m.avatar : (m.sender || 'U')[0].toUpperCase();
-              const msgPhotos = Array.isArray(m.photos) && m.photos.length > 0 ? m.photos : (m.photo ? [m.photo] : []);
-
-              return `
-                <div class="chat-msg-row ${isBot ? 'bot-msg' : ''} ${isSelf ? 'self-msg' : 'branch-msg'}">
-                  <div class="chat-msg-avatar" style="background: ${avatarBg};">${avatarInitial}</div>
-                  <div class="chat-msg-content">
-                    <div class="chat-msg-header">
-                      <span class="chat-msg-sender">${this.escapeHtml(m.sender)}</span>
-                      <span class="chat-msg-role ${roleClass}">${roleLabel}</span>
-                      <span class="chat-msg-time">${timeStr}</span>
-                    </div>
-                    <div class="chat-msg-bubble">
-                      ${msgPhotos.length > 0 ? `
-                        <div class="chat-photo-gallery">
-                          ${msgPhotos.map((src, i) => `
-                            <div class="chat-photo-item-wrap" onclick="app.openImagePreview('${src}')" title="Klik untuk memperbesar foto">
-                              <img src="${src}" class="chat-photo-img" alt="Lampiran Foto ${i+1}">
-                            </div>
-                          `).join('')}
-                        </div>
-                      ` : ''}
-                      ${m.text ? `<div>${this.escapeHtml(m.text)}</div>` : ''}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
+            ` : comments.map(m => this.renderTicketCommentItem(m)).join('')}
           </div>
 
           <!-- Quick Action Chips for this ticket (Only available if NOT resolved) -->
