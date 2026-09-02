@@ -151,6 +151,10 @@ async function pollRouterData() {
       console.log(`[RouterOS API] Connected successfully to ${currentConfig.host}:${currentConfig.port}`);
     } catch (e) {
       console.warn(`[RouterOS API Connect]: ${e.message}`);
+      if (liveClient) {
+        try { liveClient.disconnect(); } catch (_) {}
+        liveClient = null;
+      }
       isPolling = false;
       latestSnapshot.connectionStatus = 'connecting';
       latestSnapshot.lastError = e.message;

@@ -390,7 +390,9 @@ class MikroTikClient {
 
     if (this.socket) {
       try {
+        this.socket.removeAllListeners();
         this.socket.destroy();
+        this.socket.unref?.();
       } catch (e) {}
       this.socket = null;
     }
