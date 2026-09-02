@@ -372,13 +372,25 @@ class BranchTicketApp {
       const res = await fetch('/api/tickets');
       const data = await res.json();
       if (data.success && Array.isArray(data.tickets)) {
-        this.tickets = data.tickets;
+        const merged = [...data.tickets];
+        if (Array.isArray(this.tickets)) {
+          this.tickets.forEach(localT => {
+            if (!merged.some(st => st.id === localT.id)) {
+              merged.push(localT);
+            }
+          });
+        }
+        merged.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        this.tickets = merged;
+        this.saveTicketsLocal();
+
         if (!this.ticketCommentCounts) {
           this.ticketCommentCounts = {};
           this.tickets.forEach(t => {
             this.ticketCommentCounts[t.id] = (t.comments || []).length;
           });
         }
+        this.renderHistory();
         return;
       }
     } catch (e) {}
@@ -388,6 +400,7 @@ class BranchTicketApp {
       const local = localStorage.getItem('kipina_noc_tickets_data');
       if (local) {
         this.tickets = JSON.parse(local);
+        this.renderHistory();
       }
     } catch (e) {}
   }
@@ -439,18 +452,29 @@ class BranchTicketApp {
         });
       }
 
+      // Merge server tickets with any locally created tickets to prevent accidental wipeout
+      const mergedTickets = [...serverTickets];
+      if (Array.isArray(this.tickets)) {
+        this.tickets.forEach(localT => {
+          if (!mergedTickets.some(st => st.id === localT.id)) {
+            mergedTickets.push(localT);
+          }
+        });
+      }
+      mergedTickets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
       const currentSelected = this.activeTicketId ? this.tickets.find(t => t.id === this.activeTicketId) : null;
       const currentCommentsCount = currentSelected && currentSelected.comments ? currentSelected.comments.length : 0;
 
-      const newSelected = this.activeTicketId ? serverTickets.find(t => t.id === this.activeTicketId) : null;
+      const newSelected = this.activeTicketId ? mergedTickets.find(t => t.id === this.activeTicketId) : null;
       const newCommentsCount = newSelected && newSelected.comments ? newSelected.comments.length : 0;
 
       const hasNewMessage = newCommentsCount !== currentCommentsCount;
-      const hasCountChange = serverTickets.length !== this.tickets.length;
+      const hasCountChange = mergedTickets.length !== this.tickets.length;
       const hasStatusChange = currentSelected && newSelected && (currentSelected.status !== newSelected.status || currentSelected.priority !== newSelected.priority);
 
       if (hasNewMessage || hasCountChange || hasStatusChange) {
-        this.tickets = serverTickets;
+        this.tickets = mergedTickets;
         this.saveTicketsLocal();
 
         if (this.activeTab === 'view-history') {
@@ -577,15 +601,15 @@ class BranchTicketApp {
     const desc = document.getElementById('ticket-desc-input')?.value.trim();
 
     if (!title) {
-      alert('Harap isi judul kendala dengan jelas!');
+      this.showToast('Harap isi judul kendala dengan jelas!', 'warning');
       return;
     }
 
     const payload = {
       title,
       branch,
-      category: this.selectedCategory,
-      priority: 'medium', // Urgency determined by IT Admin on dashboard
+      category: this.selectedCategory || 'general',
+      priority: 'medium',
       reporter,
       phone,
       desc,
@@ -599,6 +623,8 @@ class BranchTicketApp {
       submitBtn.innerHTML = '<span>Mengirim ke Tim IT...</span>';
     }
 
+    let createdTicket = null;
+
     try {
       const res = await fetch('/api/tickets', {
         method: 'POST',
@@ -608,66 +634,72 @@ class BranchTicketApp {
       const data = await res.json();
       
       if (data.success && data.ticket) {
-        this.tickets.unshift(data.ticket);
-        this.saveTicketsLocal();
-        
-        // Reset form
-        document.getElementById('form-create-ticket')?.reset();
-        this.attachedPhotos = [];
-        this.renderPhotoPreviews();
-
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>🚀 Kirim Tiket Gangguan ke Tim IT</span>';
-        }
-
-        // Switch to ticket chat detail
-        this.openTicketChat(data.ticket.id);
-        return;
+        createdTicket = data.ticket;
       }
     } catch (e) {}
 
     // Fallback Offline Creation
-    const newId = `TK-KIP-2026-0${80 + this.tickets.length + 1}`;
-    const newTicket = {
-      id: newId,
-      title,
-      branch,
-      category: this.selectedCategory,
-      priority: 'medium',
-      status: 'open',
-      assignee: 'Menunggu Alokasi IT',
-      reporter,
-      phone,
-      createdAt: this.formatTicketDateTime(Date.now()),
-      timestamp: Date.now(),
-      desc,
-      photo: this.attachedPhotos[0] || null,
-      comments: [
-        {
-          id: `c-init-${Date.now()}`,
-          sender: 'SysBot',
-          role: 'bot',
-          avatar: '🤖',
-          text: `Tiket #${newId} telah berhasil dibuat dan diteruskan ke Tim IT.`,
-          timestamp: Date.now() + 500
-        }
-      ]
-    };
+    if (!createdTicket) {
+      const newId = `TK-KIP-2026-0${80 + this.tickets.length + 1}`;
+      createdTicket = {
+        id: newId,
+        title,
+        branch,
+        category: this.selectedCategory || 'general',
+        priority: 'medium',
+        status: 'open',
+        assignee: 'Menunggu Alokasi IT',
+        reporter,
+        phone,
+        createdAt: this.formatTicketDateTime(Date.now()),
+        timestamp: Date.now(),
+        desc: desc || 'Tidak ada deskripsi tambahan.',
+        photo: this.attachedPhotos[0] || null,
+        photos: this.attachedPhotos,
+        comments: [
+          {
+            id: `c-init-${Date.now()}`,
+            sender: reporter,
+            role: 'Cabang',
+            isSelf: true,
+            avatar: (reporter || 'P')[0].toUpperCase(),
+            text: desc ? `[Laporan Tiket]: ${desc}` : `Laporan gangguan baru: ${title}`,
+            photo: this.attachedPhotos[0] || null,
+            photos: this.attachedPhotos,
+            timestamp: Date.now()
+          },
+          {
+            id: `c-bot-${Date.now() + 500}`,
+            sender: 'IT Bot',
+            role: 'role-bot',
+            isSelf: false,
+            avatar: '🤖',
+            text: `Tiket #${newId} telah diteruskan ke antrean Tim IT NOC Pusat. Tim engineer segera memverifikasi.`,
+            timestamp: Date.now() + 500
+          }
+        ]
+      };
+    }
 
-    this.tickets.unshift(newTicket);
+    if (!this.tickets.some(t => t.id === createdTicket.id)) {
+      this.tickets.unshift(createdTicket);
+    }
     this.saveTicketsLocal();
+
+    // Reset form
+    document.getElementById('form-create-ticket')?.reset();
+    this.attachedPhotos = [];
+    this.renderPhotoPreviews();
 
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<span>🚀 Kirim Tiket Gangguan ke Tim IT</span>';
     }
 
-    document.getElementById('form-create-ticket')?.reset();
-    this.attachedPhotos = [];
-    this.renderPhotoPreviews();
+    this.showToast(`Tiket #${createdTicket.id} berhasil dikirim ke Tim IT!`, 'success');
 
-    this.openTicketChat(newId);
+    // Switch to ticket chat detail
+    this.openTicketChat(createdTicket.id);
   }
 
   saveTicketsLocal() {
@@ -697,13 +729,44 @@ class BranchTicketApp {
     const listContainer = document.getElementById('branch-tickets-list');
     const badgeCounter = document.getElementById('bottom-nav-open-count');
 
-    // Filter tickets for current branch (or all if Super)
+    // Smart Filter: Current branch tickets or reporter match
     let branchTickets = this.tickets;
     if (this.session && this.session.branch && this.session.role === 'User Cabang') {
-      branchTickets = this.tickets.filter(t => 
-        t.branch.toLowerCase().includes(this.session.branch.toLowerCase()) || 
-        this.session.branch.toLowerCase().includes(t.branch.toLowerCase())
-      );
+      const clean = (s) => (s || '').toLowerCase()
+        .replace(/kipin[aä]/gi, '')
+        .replace(/cabang/gi, '')
+        .replace(/[^a-z0-9]/gi, '')
+        .trim();
+
+      const userBranchClean = clean(this.session.branch);
+      const userPic = (this.session.name || '').toLowerCase().trim();
+      const userHandle = (this.session.username || '').toLowerCase().trim();
+
+      branchTickets = this.tickets.filter(t => {
+        // 1. Direct reporter match
+        if (t.reporter) {
+          const rep = t.reporter.toLowerCase();
+          if (userHandle && rep.includes(userHandle)) return true;
+          if (userPic && (rep.includes(userPic) || userPic.includes(rep))) return true;
+        }
+
+        // 2. Smart branch matching (e.g. "Cabang Kemang" vs "Kipinä Kemang" vs "Kemang")
+        if (t.branch) {
+          const ticketBranchClean = clean(t.branch);
+          if (userBranchClean && ticketBranchClean) {
+            if (ticketBranchClean.includes(userBranchClean) || userBranchClean.includes(ticketBranchClean)) {
+              return true;
+            }
+          }
+          // Also match subwords (e.g. "kemang")
+          const words = userBranchClean.split(/\s+/).filter(w => w.length >= 3);
+          if (words.some(w => ticketBranchClean.includes(w))) {
+            return true;
+          }
+        }
+
+        return false;
+      });
     }
 
     const openCount = branchTickets.filter(t => t.status !== 'resolved').length;

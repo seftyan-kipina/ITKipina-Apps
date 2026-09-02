@@ -49,13 +49,15 @@ const TicketSchema = new mongoose.Schema({
   category: String,
   priority: String,
   status: String,
+  assignee: String,
   reporter: String,
   phone: String,
   desc: String,
   photo: String,
   photos: [String],
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+  createdAt: { type: mongoose.Schema.Types.Mixed, default: Date.now },
+  updatedAt: { type: mongoose.Schema.Types.Mixed, default: Date.now },
+  timestamp: { type: Number, default: Date.now },
   comments: [{
     id: String,
     sender: String,
@@ -63,9 +65,11 @@ const TicketSchema = new mongoose.Schema({
     isSelf: Boolean,
     avatar: String,
     text: String,
+    photo: String,
+    photos: [String],
     timestamp: Number
   }]
-}, { collection: 'tickets' });
+}, { collection: 'tickets', strict: false });
 
 // 2. User Schema
 const UserSchema = new mongoose.Schema({
