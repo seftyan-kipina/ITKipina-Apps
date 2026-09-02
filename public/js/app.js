@@ -7622,8 +7622,9 @@ class NocApp {
     this.ALL_MODULES = [
       'noc_overview', 'noc_interfaces', 'noc_tunnel', 'noc_hotspot',
       'noc_firewall', 'noc_tools', 'noc_reports',
-      'cctv_live', 'tickets_chat', 'assets_mgmt',
-      'admin_branch', 'admin_users', 'winbox_connect'
+      'cctv_live', 'tickets_chat', 
+      'assets_mgmt', 'assets_handover', 'assets_disposal',
+      'admin_branch', 'admin_employees', 'admin_users', 'winbox_connect'
     ];
 
     this.MODULE_METAS = {
@@ -7636,8 +7637,11 @@ class NocApp {
       noc_reports: { name: 'Reports', icon: '📈', group: 'noc' },
       cctv_live: { name: 'CCTV Live', icon: '📹', group: 'cctv' },
       tickets_chat: { name: 'Tickets & Chat', icon: '💬', group: 'tickets' },
-      assets_mgmt: { name: 'Asset Mgmt', icon: '📦', group: 'assets' },
+      assets_mgmt: { name: 'Data Asset', icon: '📦', group: 'assets' },
+      assets_handover: { name: 'Serah Terima (BAST)', icon: '📋', group: 'assets' },
+      assets_disposal: { name: 'Disposal Asset', icon: '🗑️', group: 'assets' },
       admin_branch: { name: 'Branch Office', icon: '🏢', group: 'admin' },
+      admin_employees: { name: 'Employees', icon: '👔', group: 'admin' },
       admin_users: { name: 'User Mgmt', icon: '👥', group: 'admin' },
       winbox_connect: { name: 'Winbox Setup', icon: '⚡', group: 'admin' }
     };
@@ -8343,14 +8347,15 @@ class NocApp {
       return;
     }
 
-    const modules = user.modules || this.ALL_MODULES;
+    const isSuperAdmin = (user.role || '').toLowerCase().includes('super admin') || (user.username || '').toLowerCase() === 'seftyan';
+    const modules = isSuperAdmin ? (this.ALL_MODULES || Object.keys(MODULE_TO_TAB)) : (user.modules || this.ALL_MODULES || []);
 
     // 1. Update Header User Profile Widget
     const avatarEl = document.getElementById('session-user-avatar');
     const nameEl = document.getElementById('session-user-name');
     const roleEl = document.getElementById('session-user-role');
 
-    const initials = user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+    const initials = (user.name || 'Admin').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
     if (avatarEl) avatarEl.textContent = initials;
     if (nameEl) nameEl.textContent = user.name;
     if (roleEl) roleEl.textContent = user.role;
@@ -8383,7 +8388,7 @@ class NocApp {
       const modKey = Object.keys(MODULE_TO_TAB).find(k => MODULE_TO_TAB[k] === tabId);
 
       if (modKey) {
-        const hasAccess = modules.includes(modKey) || 
+        const hasAccess = isSuperAdmin || modules.includes(modKey) || 
           (['assets_handover', 'assets_disposal'].includes(modKey) && modules.includes('assets_mgmt')) ||
           (modKey === 'admin_employees' && (modules.includes('admin_branch') || modules.includes('admin_users')));
         btn.style.display = hasAccess ? '' : 'none';
@@ -8396,29 +8401,29 @@ class NocApp {
 
     // 3. Dropdown Group Visibility (Hide group if none of its sub-items are allowed)
     const nocModules = ['noc_overview', 'noc_interfaces', 'noc_tunnel', 'noc_hotspot', 'noc_firewall', 'noc_tools', 'noc_reports'];
-    const hasAnyNoc = nocModules.some(m => modules.includes(m));
+    const hasAnyNoc = isSuperAdmin || nocModules.some(m => modules.includes(m));
     const nocDropdown = document.getElementById('noc-monitoring-dropdown');
     if (nocDropdown) nocDropdown.style.display = hasAnyNoc ? '' : 'none';
 
     const assetsModules = ['assets_mgmt', 'assets_handover', 'assets_disposal'];
-    const hasAnyAssets = assetsModules.some(m => modules.includes(m));
+    const hasAnyAssets = isSuperAdmin || assetsModules.some(m => modules.includes(m)) || modules.includes('assets_mgmt');
     const assetsDropdown = document.getElementById('assets-management-dropdown');
     if (assetsDropdown) assetsDropdown.style.display = hasAnyAssets ? '' : 'none';
 
     const adminModules = ['admin_branch', 'admin_employees', 'admin_users'];
-    const hasAnyAdmin = adminModules.some(m => modules.includes(m));
+    const hasAnyAdmin = isSuperAdmin || adminModules.some(m => modules.includes(m));
     const adminDropdown = document.getElementById('admin-settings-dropdown');
     if (adminDropdown) adminDropdown.style.display = hasAnyAdmin ? '' : 'none';
 
     // Winbox Connection Button in floating dock
     const winboxBtn = document.getElementById('btn-open-winbox-modal');
     if (winboxBtn) {
-      winboxBtn.style.display = modules.includes('winbox_connect') ? '' : 'none';
+      winboxBtn.style.display = (isSuperAdmin || modules.includes('winbox_connect')) ? '' : 'none';
     }
 
     // 4. Auto-Switch to first accessible tab if current tab is forbidden
     const currentTabModKey = Object.keys(MODULE_TO_TAB).find(k => MODULE_TO_TAB[k] === this.activeTab);
-    if (currentTabModKey && !modules.includes(currentTabModKey)) {
+    if (currentTabModKey && !isSuperAdmin && !modules.includes(currentTabModKey)) {
       if (firstAllowedTab) {
         this.switchTab(firstAllowedTab);
       }

@@ -17,7 +17,11 @@
       "noc_reports",
       "cctv_live",
       "tickets_chat",
+      "assets_mgmt",
+      "assets_handover",
+      "assets_disposal",
       "admin_branch",
+      "admin_employees",
       "admin_users",
       "winbox_connect"
     ],
@@ -44,7 +48,11 @@
       "noc_reports",
       "cctv_live",
       "tickets_chat",
+      "assets_mgmt",
+      "assets_handover",
+      "assets_disposal",
       "admin_branch",
+      "admin_employees",
       "admin_users",
       "winbox_connect"
     ],
