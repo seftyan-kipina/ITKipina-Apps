@@ -966,34 +966,6 @@ class BranchTicketApp {
         body: JSON.stringify(newComment)
       });
     } catch (e) {}
-
-    // Simulated IT Auto-Reply for instant feedback
-    setTimeout(() => {
-      const itResponses = [
-        'Baik kak, pesan diterima. Tim Network Engineer sedang memverifikasi link Mikrotik GS.',
-        'Sedang kami lakukan remote check interface router cabang ya kak.',
-        'Noted, bandwidth queue sudah kami sesuaikan. Mohon dicek kembali dalam 1 menit.',
-        'Terima kasih update informasinya kak, tiket sedang kami tindak lanjuti.'
-      ];
-      const randomReply = itResponses[Math.floor(Math.random() * itResponses.length)];
-      
-      const itComment = {
-        id: `c_it_${Date.now()}`,
-        sender: 'Dimas NOC (Head Office)',
-        role: 'role-lead',
-        isSelf: false,
-        avatar: 'D',
-        text: randomReply,
-        timestamp: Date.now()
-      };
-
-      ticket.comments.push(itComment);
-      if (ticket.status === 'open') ticket.status = 'in_progress';
-      this.saveTicketsLocal();
-      if (this.activeTicketId === ticket.id) {
-        this.renderChatDetail(ticket.id, true);
-      }
-    }, 1500);
   }
 
   sendQuickReply(text) {
