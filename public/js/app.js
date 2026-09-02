@@ -2449,24 +2449,26 @@ class NocApp {
             </div>
 
             <div class="ticket-detail-desc-box">
-              <div class="desc-box-label">📝 Deskripsi Lengkap Gangguan / Permintaan:</div>
-              <div class="desc-box-text">${this.escapeHtml(ticket.desc || 'Tidak ada deskripsi tambahan.')}</div>
-              ${(() => {
-                const initialPhotos = Array.isArray(ticket.photos) && ticket.photos.length > 0 ? ticket.photos : (ticket.photo ? [ticket.photo] : []);
-                if (initialPhotos.length === 0) return '';
-                return `
-                  <div class="ticket-detail-photos-box">
-                    <div class="desc-box-label">📷 Lampiran Foto Bukti Gangguan (${initialPhotos.length} Foto):</div>
-                    <div class="chat-photo-gallery">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+                <div style="flex: 1; min-width: 0;">
+                  <div class="desc-box-label">📝 Deskripsi Kendala:</div>
+                  <div class="desc-box-text">${this.escapeHtml(ticket.desc || 'Tidak ada deskripsi tambahan.')}</div>
+                </div>
+                ${(() => {
+                  const initialPhotos = Array.isArray(ticket.photos) && ticket.photos.length > 0 ? ticket.photos : (ticket.photo ? [ticket.photo] : []);
+                  if (initialPhotos.length === 0) return '';
+                  return `
+                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;" title="Klik foto untuk memperbesar">
                       ${initialPhotos.map((src, i) => `
-                        <div class="chat-photo-item-wrap" onclick="app.openImagePreview('${src}')" title="Klik untuk memperbesar foto">
-                          <img src="${src}" class="chat-photo-img" alt="Bukti Foto ${i+1}">
+                        <div class="ticket-thumb-wrap" onclick="app.openImagePreview('${src}')">
+                          <img src="${src}" class="ticket-thumb-img" alt="Bukti Foto ${i+1}">
+                          <span class="ticket-thumb-badge">📷 ${i+1}</span>
                         </div>
                       `).join('')}
                     </div>
-                  </div>
-                `;
-              })()}
+                  `;
+                })()}
+              </div>
             </div>
           </div>
 
