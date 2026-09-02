@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Portal Tiket Gangguan IT Helpdesk Cabang Sekolah Kipinä Indonesia - Mobile Responsive.">
+  <title>Portal Tiket IT Cabang - Kipinä Kids</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Mobile Portal Stylesheet -->
+  <link rel="stylesheet" href="css/branch-portal.css">
+</head>
+<body>
+
+  <div class="mobile-app-wrapper">
+
+    <!-- Top App Bar (Visible when logged in) -->
+    <header class="mobile-top-bar" id="mobile-top-bar" style="display: none;">
+      <div class="top-bar-brand">
+        <img src="img/kipina-logo.png" alt="Kipina Logo" class="brand-logo-img">
+        <div class="brand-info-text">
+          <div class="brand-title">IT HELPDESK</div>
+          <div class="brand-branch-badge">
+            <span>📍</span>
+            <span id="mb-branch-name">Kipinä Kelapa Gading</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-bar-actions">
+        <div class="branch-user-pill" title="Profil Akun Aktif">
+          <div class="branch-user-avatar" id="mb-user-avatar">D</div>
+          <span id="mb-user-name">Dimas PIC</span>
+        </div>
+        <button type="button" class="btn-icon-round" onclick="portalApp.logout()" title="Keluar dari Akun Cabang">
+          🚪
+        </button>
+      </div>
+    </header>
+
+    <!-- Connection Status Ribbon (Visible when logged in) -->
+    <div class="mobile-status-ribbon" id="mobile-status-ribbon" style="display: none;">
+      <div>
+        <span class="status-dot-pulse"></span>
+        <span>Terhubung ke Gateway IT Head Office (GS)</span>
+      </div>
+      <span style="font-family: var(--font-mono); font-size: 0.65rem; color: #047857;">SLA 99.9%</span>
+    </div>
+
+    <!-- Main Viewport Content Area -->
+    <main class="mobile-main-content">
+
+      <!-- ==================================================================
+           VIEW 0: LOGIN PORTAL AKUN CABANG (AUTHENTICATION)
+           ================================================================== -->
+      <section class="mobile-view active" id="view-branch-login">
+        <div class="branch-login-box" style="margin-top: 20px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="img/kipina-logo.png" alt="Kipina Logo" style="height: 48px; margin-bottom: 10px;">
+            <h2 style="font-size: 1.15rem; font-weight: 850; color: var(--text-primary);">
+              IT <span style="color: var(--kipina-purple);">KIPINÄ</span>
+            </h2>
+            <div style="margin-top: 4px;">
+              <span class="ticket-status-pill in_progress" style="font-size: 0.68rem; font-weight: 800;">
+                PORTAL TIKET CABANG
+              </span>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 8px;">
+              Silakan login dengan akun PIC Cabang yang telah didaftarkan oleh IT Admin.
+            </p>
+          </div>
+
+          <!-- Login Error Alert -->
+          <div id="branch-login-alert" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 8px 12px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; margin-bottom: 14px;">
+            ⚠️ <span id="branch-login-alert-text">Username atau password salah!</span>
+          </div>
+
+          <form id="form-branch-login" onsubmit="portalApp.handleLogin(event)">
+            <div class="form-group-mb">
+              <label class="form-label-mb">Username atau Email PIC</label>
+              <input type="text" class="form-input-mb" id="branch-login-username" placeholder="Contoh: pic_gading" required autocomplete="username">
+            </div>
+
+            <div class="form-group-mb">
+              <label class="form-label-mb">Kata Sandi (Password)</label>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" class="form-input-mb font-mono" id="branch-login-password" placeholder="••••••••" required autocomplete="current-password">
+                <button type="button" onclick="portalApp.togglePasswordVisibility()" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 0.85rem;">
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-mobile-submit" id="btn-branch-login-submit" style="margin-top: 18px;">
+              <span id="btn-branch-login-text">🚀 Masuk ke Portal Tiket</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           VIEW 1: FORM BUAT TIKET GANGGUAN BARU
+           ================================================================== -->
+      <section class="mobile-view" id="view-new-ticket">
+        <div class="branch-login-box">
+          <div class="login-icon-circle">🎫</div>
+          <h2 style="font-size: 1.05rem; font-weight: 850; text-align: center; color: var(--text-primary); margin-bottom: 4px;">
+            Buat Laporan Gangguan IT
+          </h2>
+          <p style="font-size: 0.74rem; color: var(--text-muted); text-align: center; margin-bottom: 16px;">
+            Laporan Anda akan langsung masuk ke layar monitor War-Room IT NOC Pusat.
+          </p>
+
+          <form id="form-create-ticket" onsubmit="portalApp.handleCreateTicket(event)">
+            <!-- 1. Cabang & PIC -->
+            <div class="form-group-mb">
+              <label class="form-label-mb">Cabang Kipinä</label>
+              <input type="text" class="form-input-mb" id="ticket-branch-display" readonly style="background: #f1f5f9; font-weight: 750; color: var(--kipina-purple);">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div class="form-group-mb">
+                <label class="form-label-mb">Nama Pelapor PIC</label>
+                <input type="text" class="form-input-mb" id="ticket-reporter-name" placeholder="Nama Anda" required>
+              </div>
+              <div class="form-group-mb">
+                <label class="form-label-mb">No. WhatsApp</label>
+                <input type="tel" class="form-input-mb font-mono" id="ticket-reporter-phone" placeholder="0812-xxxx">
+              </div>
+            </div>
+
+            <!-- 2. Kategori Kendala Grid -->
+            <div class="form-group-mb">
+              <label class="form-label-mb">Kategori Kendala</label>
+              <div class="category-selector-grid">
+                <div class="category-chip-btn selected" data-category="wifi" onclick="portalApp.selectCategory('wifi')">
+                  <span class="category-icon">📶</span>
+                  <span class="category-text">WiFi Guru / Kelas</span>
+                </div>
+                <div class="category-chip-btn" data-category="internet" onclick="portalApp.selectCategory('internet')">
+                  <span class="category-icon">🌐</span>
+                  <span class="category-text">Internet Drop / Lambat</span>
+                </div>
+                <div class="category-chip-btn" data-category="cctv" onclick="portalApp.selectCategory('cctv')">
+                  <span class="category-icon">📹</span>
+                  <span class="category-text">CCTV Mati / Rusak</span>
+                </div>
+                <div class="category-chip-btn" data-category="printer_lan" onclick="portalApp.selectCategory('printer_lan')">
+                  <span class="category-icon">🖨️</span>
+                  <span class="category-text">Printer / LAN Kantor</span>
+                </div>
+                <div class="category-chip-btn" data-category="hardware" onclick="portalApp.selectCategory('hardware')">
+                  <span class="category-icon">⚡</span>
+                  <span class="category-text">Router / Switch</span>
+                </div>
+                <div class="category-chip-btn" data-category="other" onclick="portalApp.selectCategory('other')">
+                  <span class="category-icon">❓</span>
+                  <span class="category-text">Kendala Lainnya</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Judul & Deskripsi -->
+            <div class="form-group-mb">
+              <label class="form-label-mb">Judul Kendala Singkat <span style="color: var(--accent-red);">*</span></label>
+              <input type="text" class="form-input-mb" id="ticket-title-input" placeholder="Contoh: WiFi di ruang Toddler 2 tidak ada internet" required>
+            </div>
+
+            <div class="form-group-mb">
+              <label class="form-label-mb">Deskripsi Detail Masalah</label>
+              <textarea class="form-textarea-mb" id="ticket-desc-input" placeholder="Jelaskan detail kendala, lokasi ruangan, atau perangkat yang bermasalah..."></textarea>
+            </div>
+
+            <!-- 4. Upload Foto / Bukti -->
+            <div class="form-group-mb">
+              <label class="form-label-mb">Lampiran Foto Bukti Kendala (Bisa Pilih Beberapa Foto)</label>
+              <label class="photo-upload-box" for="ticket-photo-file">
+                <input type="file" accept="image/*" multiple id="ticket-photo-file" style="display: none;" onchange="portalApp.handlePhotoUpload(event)">
+                <div class="photo-upload-icon-circle">📷</div>
+                <div style="font-size: 0.82rem; font-weight: 800; color: var(--kipina-purple);">Pilih Foto dari Galeri / Kamera</div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">Bisa pilih lebih dari 1 foto • Format JPG, PNG (Maks 5MB)</div>
+              </label>
+              <div class="photo-preview-container" id="photo-preview-container"></div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-mobile-submit" id="btn-submit-new-ticket">
+              <span>🚀 Kirim Tiket Gangguan ke Tim IT</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           VIEW 2: RIWAYAT TIKET CABANG
+           ================================================================== -->
+      <section class="mobile-view" id="view-history">
+        <div class="ticket-history-header">
+          <div class="history-title">
+            <span>📋 Riwayat Tiket Cabang</span>
+          </div>
+          <button type="button" class="btn-icon-round" onclick="portalApp.fetchTickets(); portalApp.renderHistory();" title="Segarkan Data">
+            🔄
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="form-group-mb">
+          <input type="text" class="form-input-mb" id="history-search-input" placeholder="🔍 Cari nomor tiket atau judul kendala..." oninput="portalApp.searchTickets(this.value)">
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="history-filter-scroll">
+          <button type="button" class="filter-chip-tab active" data-status="all" onclick="portalApp.filterHistory('all')">Semua Tiket</button>
+          <button type="button" class="filter-chip-tab" data-status="open" onclick="portalApp.filterHistory('open')">🟡 Menunggu IT</button>
+          <button type="button" class="filter-chip-tab" data-status="in_progress" onclick="portalApp.filterHistory('in_progress')">🔵 Sedang Ditangani</button>
+          <button type="button" class="filter-chip-tab" data-status="resolved" onclick="portalApp.filterHistory('resolved')">🟢 Selesai</button>
+        </div>
+
+        <!-- Tickets Cards List Container -->
+        <div id="branch-tickets-list"></div>
+      </section>
+
+      <!-- ==================================================================
+           VIEW 3: DETAIL TIKET & LIVE CHAT DENGAN TIM IT NOC
+           ================================================================== -->
+      <section class="mobile-view" id="view-chat-detail">
+        <div class="mobile-chat-header-bar">
+          <button type="button" class="btn-back-link" onclick="portalApp.switchTab('view-history')">
+            <span>←</span>
+            <span>Kembali</span>
+          </button>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="ticket-code-badge" id="chat-ticket-code">#TK-KIP-2026-081</span>
+            <span class="ticket-status-pill open" id="chat-ticket-status">Menunggu IT</span>
+          </div>
+        </div>
+
+        <!-- Ticket Summary Card -->
+        <div class="ticket-summary-card">
+          <div style="font-size: 0.88rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;" id="chat-ticket-title">
+            Judul Tiket
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.35; margin-bottom: 8px;" id="chat-ticket-desc">
+            Deskripsi masalah
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.68rem; color: var(--text-muted); border-top: 1px solid #f1f5f9; padding-top: 6px; flex-wrap: wrap; gap: 4px;">
+            <span id="chat-ticket-branch">📍 Kipinä Cabang</span>
+            <span id="chat-ticket-datetime" style="font-weight: 700; color: #475569;">📅 -</span>
+            <span>🛡️ PIC IT: <strong id="chat-ticket-assignee" style="color: var(--kipina-purple);">Dimas NOC</strong></span>
+          </div>
+        </div>
+
+        <!-- Live Chat Messages Stream -->
+        <div class="mobile-chat-container" id="mobile-chat-stream" style="max-height: 420px; overflow-y: auto; padding: 4px;"></div>
+
+        <!-- Quick Reply Chips -->
+        <div class="quick-reply-scroll">
+          <button type="button" class="quick-reply-chip" onclick="portalApp.sendQuickReply('Mohon dicek kembali mas')">Mohon dicek mas</button>
+          <button type="button" class="quick-reply-chip" onclick="portalApp.sendQuickReply('Perangkat router/AP sudah kami restart')">Sudah di-restart</button>
+          <button type="button" class="quick-reply-chip" onclick="portalApp.sendQuickReply('Koneksi sudah normal kembali, terima kasih!')">Sudah normal, thanks!</button>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <form class="mobile-chat-input-bar" onsubmit="portalApp.sendChatMessage(event)">
+          <input type="text" class="mobile-chat-input-field" id="mobile-chat-text-input" placeholder="Tulis pesan ke tim IT..." autocomplete="off" required>
+          <button type="submit" class="btn-chat-send" title="Kirim Pesan">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+      </section>
+
+    </main>
+
+    <!-- Modern Animated Floating Navigation Dock -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav" style="display: none;">
+      <button type="button" class="bottom-nav-btn active" data-tab="view-new-ticket" onclick="portalApp.switchTab('view-new-ticket')">
+        <div class="nav-icon-wrapper">
+          <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </div>
+        <span class="bottom-nav-label">Buat Tiket</span>
+        <span class="active-indicator-dot"></span>
+      </button>
+
+      <button type="button" class="bottom-nav-btn" data-tab="view-history" onclick="portalApp.switchTab('view-history')">
+        <div class="nav-icon-wrapper">
+          <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span class="bottom-nav-badge" id="bottom-nav-open-count" style="display: none;">0</span>
+        </div>
+        <span class="bottom-nav-label">Riwayat Tiket</span>
+        <span class="active-indicator-dot"></span>
+      </button>
+
+      <button type="button" class="bottom-nav-btn btn-nav-logout" onclick="portalApp.logout()">
+        <div class="nav-icon-wrapper">
+          <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </div>
+        <span class="bottom-nav-label">Keluar</span>
+      </button>
+    </nav>
+
+    <!-- Fullscreen Mobile Image Previewer Lightbox -->
+    <div id="mobile-image-preview-modal" class="image-preview-overlay" onclick="portalApp.closeImagePreview(event)" style="display: none;">
+      <div class="image-preview-dialog" onclick="event.stopPropagation()">
+        <button type="button" class="btn-close-preview" onclick="portalApp.closeImagePreview()" title="Tutup Preview">&times;</button>
+        <img id="mobile-image-preview-target" class="image-preview-full" src="" alt="Preview Lampiran Foto">
+        <div class="image-preview-toolbar">
+          <a id="mobile-image-preview-download" href="" download="lampiran-foto-tiket.png" target="_blank" class="btn-preview-dl">⬇️ Unduh Foto</a>
+          <button type="button" class="btn-preview-close" onclick="portalApp.closeImagePreview()">✕ Tutup</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/branch-portal.js"></script>
+</body>
+</html>

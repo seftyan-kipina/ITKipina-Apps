@@ -1,0 +1,200 @@
+[
+  {
+    "id": "usr-1",
+    "username": "seftyan",
+    "name": "Seftyan Indriyanto",
+    "email": "seftyan@kipina.sch.id",
+    "role": "Super Admin",
+    "branch": "Kipina Gading Serpong (Head Office)",
+    "phone": "0812-1122-3344",
+    "modules": [
+      "noc_overview",
+      "noc_interfaces",
+      "noc_tunnel",
+      "noc_hotspot",
+      "noc_firewall",
+      "noc_tools",
+      "noc_reports",
+      "cctv_live",
+      "tickets_chat",
+      "admin_branch",
+      "admin_users",
+      "winbox_connect"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "103.138.46.106",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-2",
+    "username": "iben",
+    "name": "Iben Hadi",
+    "email": "iben@kipinakids.sch.id",
+    "role": "Network Engineer",
+    "branch": "Kipina Gading Serpong (Head Office)",
+    "phone": "0812-9988-7711",
+    "modules": [
+      "noc_overview",
+      "noc_interfaces",
+      "noc_tunnel",
+      "noc_hotspot",
+      "noc_firewall",
+      "noc_tools",
+      "noc_reports",
+      "cctv_live",
+      "tickets_chat",
+      "admin_branch",
+      "admin_users",
+      "winbox_connect"
+    ],
+    "lastLogin": "12 menit lalu",
+    "lastIp": "10.255.255.10",
+    "status": "Active",
+    "password": "123456"
+  },
+  {
+    "id": "usr-kg1",
+    "username": "pic_gading",
+    "name": "Dimas Kurniawan PIC",
+    "email": "pic.gading1@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Kelapa Gading 1",
+    "phone": "0812-9988-7711",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.10",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-kmg",
+    "username": "pic_kemang",
+    "name": "Farhan Ramadhan PIC",
+    "email": "pic.kemang@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Kemang",
+    "phone": "0812-9988-1122",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.20",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-bk",
+    "username": "pic_bekasi",
+    "name": "Budi Santoso PIC",
+    "email": "pic.bekasi@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Bekasi",
+    "phone": "0856-7788-9900",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.30",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-sby",
+    "username": "pic_surabaya",
+    "name": "Rian Pratama PIC",
+    "email": "pic.surabaya@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Surabaya",
+    "phone": "0818-4455-6677",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.40",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-kg2",
+    "username": "pic_gading2",
+    "name": "Andi Wijaya PIC",
+    "email": "pic.gading2@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Kelapa Gading 2",
+    "phone": "0877-2233-4455",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.50",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-puri",
+    "username": "pic_puri",
+    "name": "Eko Prasetyo PIC",
+    "email": "pic.puri@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Puri Indah",
+    "phone": "0819-3344-5566",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.60",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-bali",
+    "username": "pic_bali",
+    "name": "Wayan Darma PIC",
+    "email": "pic.bali@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Bali",
+    "phone": "0821-6677-8899",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.70",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-sc",
+    "username": "pic_southcity",
+    "name": "Fajar Hidayat PIC",
+    "email": "pic.southcity@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang South City",
+    "phone": "0813-1122-3344",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.80",
+    "status": "Active",
+    "password": "admin123"
+  },
+  {
+    "id": "usr-bgr",
+    "username": "pic_bogor",
+    "name": "Hendra Kusuma PIC",
+    "email": "pic.bogor@kipina.sch.id",
+    "role": "User Cabang",
+    "branch": "Cabang Bogor",
+    "phone": "0857-8899-0011",
+    "modules": [
+      "tickets_chat"
+    ],
+    "lastLogin": "Aktif Sekarang",
+    "lastIp": "10.255.255.90",
+    "status": "Active",
+    "password": "admin123"
+  }
+]

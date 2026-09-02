@@ -1,0 +1,9 @@
+{
+  "mode": "live",
+  "host": "103.138.46.106",
+  "port": 8728,
+  "user": "Seftyan",
+  "password": "kipina@123",
+  "apiType": "api",
+  "useSsl": false
+}

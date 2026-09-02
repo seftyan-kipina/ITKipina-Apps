@@ -1,0 +1,28 @@
+{
+  "name": "mikrotik-noc-monitor",
+  "version": "1.0.0",
+  "description": "Real-time MikroTik RouterOS NOC Monitoring Web Application with Winbox Integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "mongoose": "^9.9.4",
+    "node-onvif": "^0.1.7",
+    "ws": "^8.17.0"
+  },
+  "keywords": [
+    "mikrotik",
+    "routeros",
+    "noc",
+    "winbox",
+    "monitoring",
+    "realtime",
+    "dashboard"
+  ],
+  "author": "Antigravity NOC Team",
+  "license": "MIT"
+}
