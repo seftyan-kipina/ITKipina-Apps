@@ -1129,3 +1129,254 @@ html, body {
   border-radius: 20px;
   cursor: pointer;
 }
+
+/* ==========================================================================
+   MOBILE LOGOUT CONFIRMATION MODAL
+   ========================================================================== */
+.mobile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 99999;
+  animation: fadeInOverlay 0.2s ease-out;
+}
+
+.mobile-modal-card {
+  width: 100%;
+  max-width: 360px;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  padding: 26px 22px 20px 22px;
+  text-align: center;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.35);
+  animation: scaleUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@keyframes scaleUpModal {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.mobile-modal-icon-wrap {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.mobile-modal-icon-wrap.warning {
+  background: #fff7ed;
+  border: 2px solid #fed7aa;
+  color: #ea580c;
+}
+
+.modal-icon-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: rgba(243, 112, 33, 0.2);
+  animation: pulseWarning 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes pulseWarning {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.2; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.mobile-modal-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.mobile-modal-desc {
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
+
+.mobile-modal-meta-box {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  padding: 7px 12px;
+  font-size: 0.74rem;
+  font-weight: 750;
+  color: #c2410c;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.mobile-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-modal-cancel {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 750;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-cancel:active {
+  background: #f1f5f9;
+  transform: scale(0.98);
+}
+
+.btn-modal-confirm {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #f37021 0%, #e60064 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.86rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(243, 112, 33, 0.35);
+  transition: all 0.15s ease;
+}
+
+.btn-modal-confirm:active {
+  transform: scale(0.98);
+  filter: brightness(0.92);
+}
+
+/* ==========================================================================
+   FLOATING IN-APP INCOMING CHAT NOTIFICATION BANNER (TIM IT)
+   ========================================================================== */
+.mobile-push-banner {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  max-width: 440px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1.5px solid #009fe3;
+  border-radius: 18px;
+  padding: 11px 14px;
+  box-shadow: 0 12px 35px -5px rgba(0, 159, 227, 0.35), 0 4px 14px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 999999;
+  cursor: pointer;
+  animation: slideDownPush 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+@keyframes slideDownPush {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.mobile-push-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #009fe3 0%, #2563eb 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px rgba(0, 159, 227, 0.3);
+}
+
+.mobile-push-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-push-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.mobile-push-title {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mobile-push-time {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-family: var(--font-mono);
+}
+
+.mobile-push-msg {
+  font-size: 0.74rem;
+  color: #1e293b;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-push-action-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #0284c7;
+  font-size: 0.70rem;
+  font-weight: 750;
+  padding: 4px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mobile-push-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -226,11 +226,123 @@ class BranchTicketApp {
   }
 
   logout() {
-    if (confirm('Apakah Anda yakin ingin keluar dari akun cabang ini?')) {
-      localStorage.removeItem('kipina_branch_user_session');
-      sessionStorage.removeItem('kipina_branch_user_session');
-      this.session = null;
-      this.showLoginView();
+    this.openLogoutModal();
+  }
+
+  openLogoutModal() {
+    const branchEl = document.getElementById('logout-modal-branch');
+    const userEl = document.getElementById('logout-modal-user');
+    if (branchEl) branchEl.textContent = `📍 ${this.session?.branch || 'Kipinä Cabang'}`;
+    if (userEl) userEl.textContent = `👤 ${this.session?.name || this.session?.username || 'Staff Cabang'}`;
+
+    const modal = document.getElementById('mobile-logout-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  closeLogoutModal(event) {
+    if (event && event.target && event.target.id !== 'mobile-logout-modal') return;
+    const modal = document.getElementById('mobile-logout-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  confirmLogout() {
+    const modal = document.getElementById('mobile-logout-modal');
+    if (modal) modal.style.display = 'none';
+
+    localStorage.removeItem('kipina_branch_user_session');
+    sessionStorage.removeItem('kipina_branch_user_session');
+    this.session = null;
+    this.showToast('Anda telah berhasil keluar dari akun cabang.', 'info');
+    this.showLoginView();
+  }
+
+  playNotificationChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Tone 1: 880Hz (A5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.16);
+
+      // Tone 2: 1174Hz (D6)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1174.66, now + 0.10);
+      gain2.gain.setValueAtTime(0.24, now + 0.10);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.10);
+      osc2.stop(now + 0.36);
+    } catch (e) {}
+  }
+
+  showIncomingChatPushBanner(ticket, comment) {
+    this.pendingPushTicketId = ticket.id;
+    this.playNotificationChime();
+    if (navigator.vibrate) {
+      navigator.vibrate([80, 50, 100]);
+    }
+
+    const banner = document.getElementById('mobile-chat-push-banner');
+    const ticketBadge = document.getElementById('push-banner-ticket');
+    const msgEl = document.getElementById('push-banner-msg');
+    const timeEl = document.getElementById('push-banner-time');
+    const avatarEl = document.getElementById('push-banner-avatar');
+
+    if (ticketBadge) ticketBadge.textContent = `#${ticket.id}`;
+    if (msgEl) {
+      const sender = comment.sender || 'Tim IT NOC';
+      const text = comment.text || 'Mengirim tanggapan atau lampiran foto';
+      msgEl.textContent = `${sender}: "${text}"`;
+    }
+    if (timeEl) timeEl.textContent = 'Baru saja';
+    if (avatarEl) avatarEl.textContent = (comment.avatar && comment.avatar.length <= 2) ? comment.avatar : '💬';
+
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.style.opacity = '1';
+      banner.style.transform = 'translateY(0)';
+      banner.style.animation = 'none';
+      banner.offsetHeight; // trigger reflow
+      banner.style.animation = 'slideDownPush 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+
+      if (this.pushBannerTimer) clearTimeout(this.pushBannerTimer);
+      this.pushBannerTimer = setTimeout(() => {
+        this.dismissPushBanner();
+      }, 5500);
+    }
+  }
+
+  dismissPushBanner() {
+    const banner = document.getElementById('mobile-chat-push-banner');
+    if (!banner) return;
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(-30px)';
+    setTimeout(() => {
+      banner.style.display = 'none';
+      banner.style.opacity = '1';
+      banner.style.transform = '';
+    }, 250);
+  }
+
+  handlePushBannerClick() {
+    const tId = this.pendingPushTicketId;
+    this.dismissPushBanner();
+    if (tId) {
+      this.renderChatDetail(tId);
     }
   }
 
@@ -261,6 +373,12 @@ class BranchTicketApp {
       const data = await res.json();
       if (data.success && Array.isArray(data.tickets)) {
         this.tickets = data.tickets;
+        if (!this.ticketCommentCounts) {
+          this.ticketCommentCounts = {};
+          this.tickets.forEach(t => {
+            this.ticketCommentCounts[t.id] = (t.comments || []).length;
+          });
+        }
         return;
       }
     } catch (e) {}
@@ -299,6 +417,28 @@ class BranchTicketApp {
       if (!data.success || !Array.isArray(data.tickets)) return;
 
       const serverTickets = data.tickets;
+
+      // Detect and notify incoming responses from IT Team across all tickets
+      if (!this.ticketCommentCounts) {
+        this.ticketCommentCounts = {};
+        serverTickets.forEach(t => {
+          this.ticketCommentCounts[t.id] = (t.comments || []).length;
+        });
+      } else {
+        serverTickets.forEach(st => {
+          const oldLen = this.ticketCommentCounts[st.id] ?? (st.comments || []).length;
+          const newComments = st.comments || [];
+          if (newComments.length > oldLen) {
+            const latest = newComments[newComments.length - 1];
+            const isFromIt = !latest.isSelf && latest.role !== 'Cabang' && (latest.role || '').toLowerCase() !== 'user cabang';
+            if (isFromIt) {
+              this.showIncomingChatPushBanner(st, latest);
+            }
+          }
+          this.ticketCommentCounts[st.id] = newComments.length;
+        });
+      }
+
       const currentSelected = this.activeTicketId ? this.tickets.find(t => t.id === this.activeTicketId) : null;
       const currentCommentsCount = currentSelected && currentSelected.comments ? currentSelected.comments.length : 0;
 
@@ -329,9 +469,6 @@ class BranchTicketApp {
 
           if (hasNewMessage) {
             this.renderChatDetail(this.activeTicketId, true);
-            if (navigator.vibrate) {
-              navigator.vibrate([60, 40, 60]);
-            }
           }
         }
       }

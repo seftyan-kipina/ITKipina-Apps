@@ -341,6 +341,53 @@
       </div>
     </div>
 
+    <!-- Modal Konfirmasi Keluar (Logout) Mobile -->
+    <div id="mobile-logout-modal" class="mobile-modal-overlay" style="display: none;" onclick="portalApp.closeLogoutModal(event)">
+      <div class="mobile-modal-card" onclick="event.stopPropagation()">
+        <div class="mobile-modal-icon-wrap warning">
+          <span class="modal-icon-pulse"></span>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <h3 class="mobile-modal-title">Konfirmasi Keluar (Logout)?</h3>
+        <p class="mobile-modal-desc">Apakah Anda yakin ingin mengakhiri sesi login akun cabang ini dari perangkat Anda?</p>
+        
+        <div class="mobile-modal-meta-box">
+          <span id="logout-modal-branch">📍 Kipinä Cabang</span>
+          <span>&bull;</span>
+          <span id="logout-modal-user">👤 Staff</span>
+        </div>
+
+        <div class="mobile-modal-actions">
+          <button type="button" class="btn-modal-cancel" onclick="portalApp.closeLogoutModal()">Batal</button>
+          <button type="button" class="btn-modal-confirm" onclick="portalApp.confirmLogout()">
+            <span>🚪</span>
+            <span>Ya, Keluar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating In-App Chat Notification Push Banner (Tim IT) -->
+    <div id="mobile-chat-push-banner" class="mobile-push-banner" style="display: none;" onclick="portalApp.handlePushBannerClick()">
+      <div class="mobile-push-avatar" id="push-banner-avatar">💬</div>
+      <div class="mobile-push-content">
+        <div class="mobile-push-top">
+          <span class="mobile-push-title">
+            <span>⚡ Tim IT NOC Merespons</span>
+            <span id="push-banner-ticket" style="font-family: var(--font-mono); font-size: 0.65rem; color: #0284c7; background: #e0f2fe; padding: 1px 5px; border-radius: 4px;">#TK-000</span>
+          </span>
+          <span class="mobile-push-time" id="push-banner-time">Baru saja</span>
+        </div>
+        <div class="mobile-push-msg" id="push-banner-msg">Dimas NOC: Sedang kami lakukan verifikasi link...</div>
+      </div>
+      <span class="mobile-push-action-btn">Buka</span>
+      <button type="button" class="mobile-push-close" onclick="event.stopPropagation(); portalApp.dismissPushBanner()" title="Tutup">&times;</button>
+    </div>
+
   </div>
 
   <!-- Scripts -->
