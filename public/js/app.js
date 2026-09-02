@@ -2050,13 +2050,13 @@ class NocApp {
   startTicketAutoRefresh() {
     if (this.ticketPollingTimer) return;
     this.ticketPollingTimer = setInterval(async () => {
-      // Auto poll if user is currently on tab-tickets or has a ticket selected
+      // Auto poll jika user berada di tab tickets atau ada tiket terpilih
       const tabEl = document.getElementById('tab-tickets');
       const isTicketsTabActive = this.activeTab === 'tab-tickets' || (tabEl && tabEl.classList.contains('active'));
       if (isTicketsTabActive || this.selectedTicketId) {
         await this.pollTicketUpdates();
       }
-    }, 2500);
+    }, 3000);
   }
 
   stopTicketAutoRefresh() {
@@ -2074,24 +2074,33 @@ class NocApp {
       if (!data.success || !Array.isArray(data.tickets)) return;
 
       const serverTickets = data.tickets;
-      const currentCount = this.tickets.length;
+      const currentIds = new Set(this.tickets.map(t => t.id));
       const currentSelected = this.selectedTicketId ? this.tickets.find(t => t.id === this.selectedTicketId) : null;
       const currentCommentCount = currentSelected && currentSelected.comments ? currentSelected.comments.length : 0;
+
+      // Deteksi tiket baru berdasarkan ID (lebih akurat dari count saja)
+      const newTickets = serverTickets.filter(t => !currentIds.has(t.id));
 
       // Find matching server ticket
       const newSelected = this.selectedTicketId ? serverTickets.find(t => t.id === this.selectedTicketId) : null;
       const newCommentCount = newSelected && newSelected.comments ? newSelected.comments.length : 0;
 
-      const hasCountChange = serverTickets.length !== currentCount;
+      const hasNewTickets = newTickets.length > 0;
+      const hasCountChange = serverTickets.length !== this.tickets.length;
       const hasNewComment = newCommentCount !== currentCommentCount;
       const hasStatusChange = currentSelected && newSelected && (currentSelected.status !== newSelected.status || currentSelected.priority !== newSelected.priority);
 
-      if (hasCountChange || hasNewComment || hasStatusChange) {
+      if (hasNewTickets || hasCountChange || hasNewComment || hasStatusChange) {
         this.tickets = serverTickets;
         this.normalizeTickets();
         this.saveTicketsLocal();
         this.updateTicketKPIs();
         this.renderTickets(true);
+
+        // Notifikasi toast bila ada tiket baru masuk dari cabang
+        if (hasNewTickets) {
+          this.showToast(`🔔 ${newTickets.length} tiket baru masuk dari cabang!`, 'success');
+        }
 
         if (this.selectedTicketId && newSelected) {
           this.updateTicketChatMessagesSmoothly(newSelected, hasNewComment);
@@ -2187,6 +2196,31 @@ class NocApp {
       setTimeout(() => {
         container.scrollTop = container.scrollHeight;
       }, 30);
+    }
+  }
+
+  async manualRefreshTicketList(btnEl) {
+    // Animasi spin pada icon refresh
+    const icon = document.getElementById('refresh-ticket-icon') || (btnEl && btnEl.querySelector('svg'));
+    if (icon) {
+      icon.style.transition = 'transform 0.6s ease';
+      icon.style.transform = 'rotate(360deg)';
+      setTimeout(() => { icon.style.transition = 'none'; icon.style.transform = 'rotate(0deg)'; setTimeout(() => { icon.style.transition = 'transform 0.6s ease'; }, 50); }, 650);
+    }
+    if (btnEl) { btnEl.disabled = true; btnEl.style.opacity = '0.6'; }
+
+    const prevCount = this.tickets.length;
+    await this.fetchTicketsFromServer();
+    this.updateTicketKPIs();
+    this.renderTickets(true);
+    const newCount = this.tickets.length;
+
+    if (btnEl) { setTimeout(() => { btnEl.disabled = false; btnEl.style.opacity = '1'; }, 700); }
+
+    if (newCount > prevCount) {
+      this.showToast(`✅ ${newCount - prevCount} tiket baru masuk dari cabang!`, 'success');
+    } else {
+      this.showToast('🔄 Daftar tiket berhasil diperbarui.', 'info');
     }
   }
 
