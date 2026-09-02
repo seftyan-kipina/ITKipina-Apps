@@ -2044,6 +2044,130 @@ class NocApp {
     this.renderTickets();
     this.updateTicketKPIs();
     this.renderRightPane();
+    this.startTicketAutoRefresh();
+  }
+
+  startTicketAutoRefresh() {
+    if (this.ticketPollingTimer) return;
+    this.ticketPollingTimer = setInterval(async () => {
+      // Auto poll if user is currently on tab-tickets or has a ticket selected
+      const tabEl = document.getElementById('tab-tickets');
+      const isTicketsTabActive = this.activeTab === 'tab-tickets' || (tabEl && tabEl.classList.contains('active'));
+      if (isTicketsTabActive || this.selectedTicketId) {
+        await this.pollTicketUpdates();
+      }
+    }, 2500);
+  }
+
+  stopTicketAutoRefresh() {
+    if (this.ticketPollingTimer) {
+      clearInterval(this.ticketPollingTimer);
+      this.ticketPollingTimer = null;
+    }
+  }
+
+  async pollTicketUpdates() {
+    try {
+      const res = await fetch('/api/tickets');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success || !Array.isArray(data.tickets)) return;
+
+      const serverTickets = data.tickets;
+      const currentCount = this.tickets.length;
+      const currentSelected = this.selectedTicketId ? this.tickets.find(t => t.id === this.selectedTicketId) : null;
+      const currentCommentCount = currentSelected && currentSelected.comments ? currentSelected.comments.length : 0;
+
+      // Find matching server ticket
+      const newSelected = this.selectedTicketId ? serverTickets.find(t => t.id === this.selectedTicketId) : null;
+      const newCommentCount = newSelected && newSelected.comments ? newSelected.comments.length : 0;
+
+      const hasCountChange = serverTickets.length !== currentCount;
+      const hasNewComment = newCommentCount !== currentCommentCount;
+      const hasStatusChange = currentSelected && newSelected && (currentSelected.status !== newSelected.status || currentSelected.priority !== newSelected.priority);
+
+      if (hasCountChange || hasNewComment || hasStatusChange) {
+        this.tickets = serverTickets;
+        this.normalizeTickets();
+        this.saveTicketsLocal();
+        this.updateTicketKPIs();
+        this.renderTickets(true);
+
+        if (this.selectedTicketId && newSelected) {
+          this.updateTicketChatMessagesSmoothly(newSelected, hasNewComment);
+        }
+      }
+    } catch (e) {}
+  }
+
+  updateTicketChatMessagesSmoothly(ticket, hasNewMessage) {
+    const container = document.getElementById('ticket-chat-messages-container');
+    if (!container) return;
+
+    const comments = ticket.comments || [];
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+
+    container.innerHTML = comments.length === 0 ? `
+      <div style="text-align: center; padding: 30px 16px; color: var(--text-muted);">
+        <div style="font-size: 1.8rem; margin-bottom: 6px;">💬</div>
+        <div style="font-size: 0.8rem; font-weight: 700;">Belum ada pesan di thread tiket ini</div>
+        <div style="font-size: 0.72rem;">Kirim catatan investigasi atau update tindakan pertama</div>
+      </div>
+    ` : comments.map(m => {
+      const isBot = (m.role === 'role-bot') || (m.role === 'BOT') || (m.sender && m.sender.toLowerCase().includes('bot'));
+      const isBranch = (m.role === 'Cabang') || (m.role === 'User Cabang') || (m.role === 'CABANG') || (m.sender && (m.sender.toLowerCase().includes('pic') || m.sender.toLowerCase().includes('cabang') || m.sender.toLowerCase().includes('guru') || m.sender.toLowerCase().includes('security')));
+      const isSelf = !isBot && !isBranch;
+      
+      const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
+      let avatarBg = '#7a1374';
+      if (isBranch) avatarBg = '#f37021';
+      else if (isBot) avatarBg = '#9333ea';
+      else if (m.role === 'ENGINEER' || (m.role && m.role.toLowerCase().includes('engineer'))) avatarBg = '#0284c7';
+      else if (m.role === 'SURVEILLANCE') avatarBg = '#d97706';
+
+      const commentPhotos = Array.isArray(m.photos) && m.photos.length > 0 ? m.photos : (m.photo ? [m.photo] : []);
+
+      return `
+        <div class="chat-msg ${isSelf ? 'msg-self' : (isBot ? 'msg-bot' : 'msg-incoming')}">
+          <div class="chat-avatar" style="background: ${avatarBg};">${m.avatar || '👤'}</div>
+          <div class="chat-bubble">
+            <div class="chat-sender-row">
+              <span class="chat-sender-name">${this.escapeHtml(m.sender || 'Staff')}</span>
+              <span class="chat-sender-role ${m.role || 'role-staff'}">${m.role || 'Staff'}</span>
+              <span class="chat-msg-time">${timeStr}</span>
+            </div>
+            <div class="chat-body-text">
+              ${commentPhotos.length > 0 ? `
+                <div class="chat-photo-gallery">
+                  ${commentPhotos.map((src, i) => `
+                    <div class="chat-photo-item-wrap" onclick="app.openImagePreview('${src}')" title="Klik untuk memperbesar foto">
+                      <img src="${src}" class="chat-photo-img" alt="Lampiran Foto ${i+1}">
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${m.text ? `<div>${this.escapeHtml(m.text)}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (hasNewMessage || isNearBottom) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 30);
+    }
+  }
+
+  async manualRefreshTickets() {
+    await this.fetchTicketsFromServer();
+    this.renderTickets(true);
+    if (this.selectedTicketId) {
+      const t = this.tickets.find(tk => tk.id === this.selectedTicketId);
+      if (t) this.updateTicketChatMessagesSmoothly(t, true);
+    }
+    this.showToast('Pesan percakapan tiket berhasil disegarkan!', 'success');
   }
 
   async fetchTicketsFromServer() {
@@ -2075,7 +2199,8 @@ class NocApp {
     this.renderTickets();
     this.updateTicketKPIs();
     if (this.selectedTicketId) {
-      this.renderRightPane();
+      const t = this.tickets.find(tk => tk.id === this.selectedTicketId);
+      if (t) this.updateTicketChatMessagesSmoothly(t, true);
     }
   }
 
@@ -2323,10 +2448,15 @@ class NocApp {
                 Thread Diskusi & Investigasi Tim IT <span style="color: var(--kipina-purple);">(Tiket #${ticket.id})</span>
               </div>
             </div>
-            <span class="chat-online-indicator">
-              <span class="status-dot"></span>
-              <span>Live Staff Active</span>
-            </span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="chat-online-indicator" title="Percakapan terhubung real-time dengan auto-refresh setiap 2.5 detik" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;">
+                <span class="status-dot" style="background: #10b981; width: 7px; height: 7px; border-radius: 50%; animation: pulse-soft 1.5s infinite;"></span>
+                <span style="font-size: 0.72rem; font-weight: 750; color: #059669;">Auto-Refresh Live</span>
+              </span>
+              <button class="btn btn-sm" onclick="app.manualRefreshTickets()" title="Klik untuk refresh thread percakapan tiket sekarang" style="padding: 3px 9px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #cbd5e1; background: #ffffff; cursor: pointer; border-radius: 6px;">
+                <span>🔄</span> <span>Segarkan</span>
+              </button>
+            </div>
           </div>
 
           <!-- Messages container for this ticket -->

@@ -24,6 +24,7 @@ class BranchTicketApp {
     await this.fetchUsers();
     await this.fetchTickets();
     this.loadSession();
+    this.startAutoPolling();
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -271,6 +272,78 @@ class BranchTicketApp {
         this.tickets = JSON.parse(local);
       }
     } catch (e) {}
+  }
+
+  startAutoPolling() {
+    if (this.pollTimer) return;
+    this.pollTimer = setInterval(async () => {
+      // Auto poll every 2.5 seconds when looking at history or in chat detail
+      if (this.activeTicketId || this.activeTab === 'view-history' || this.activeTab === 'view-chat-detail') {
+        await this.pollTicketUpdates();
+      }
+    }, 2500);
+  }
+
+  stopAutoPolling() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
+  async pollTicketUpdates() {
+    try {
+      const res = await fetch('/api/tickets');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success || !Array.isArray(data.tickets)) return;
+
+      const serverTickets = data.tickets;
+      const currentSelected = this.activeTicketId ? this.tickets.find(t => t.id === this.activeTicketId) : null;
+      const currentCommentsCount = currentSelected && currentSelected.comments ? currentSelected.comments.length : 0;
+
+      const newSelected = this.activeTicketId ? serverTickets.find(t => t.id === this.activeTicketId) : null;
+      const newCommentsCount = newSelected && newSelected.comments ? newSelected.comments.length : 0;
+
+      const hasNewMessage = newCommentsCount !== currentCommentsCount;
+      const hasCountChange = serverTickets.length !== this.tickets.length;
+      const hasStatusChange = currentSelected && newSelected && (currentSelected.status !== newSelected.status || currentSelected.priority !== newSelected.priority);
+
+      if (hasNewMessage || hasCountChange || hasStatusChange) {
+        this.tickets = serverTickets;
+        this.saveTicketsLocal();
+
+        if (this.activeTab === 'view-history') {
+          this.renderHistory();
+        }
+
+        if (this.activeTicketId && newSelected) {
+          // Update status badge dynamically
+          const statusBadge = document.getElementById('chat-ticket-status');
+          if (statusBadge) {
+            const isResolved = (newSelected.status || '').toUpperCase() === 'RESOLVED';
+            const isInProgress = (newSelected.status || '').toUpperCase() === 'IN_PROGRESS';
+            statusBadge.className = `ticket-status-pill ${newSelected.status.toLowerCase()}`;
+            statusBadge.textContent = isResolved ? 'Selesai' : (isInProgress ? 'Diproses IT' : 'Menunggu IT');
+          }
+
+          if (hasNewMessage) {
+            this.renderChatDetail(this.activeTicketId, true);
+            if (navigator.vibrate) {
+              navigator.vibrate([60, 40, 60]);
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  async manualRefreshChat() {
+    await this.fetchTickets();
+    if (this.activeTicketId) {
+      this.renderChatDetail(this.activeTicketId, true);
+    }
+    this.showToast('Chat percakapan tiket berhasil disegarkan!', 'success');
   }
 
   switchTab(tabName) {

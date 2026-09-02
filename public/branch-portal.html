@@ -240,7 +240,15 @@
           <div style="display: flex; align-items: center; gap: 6px;">
             <span class="ticket-code-badge" id="chat-ticket-code">#TK-KIP-2026-081</span>
             <span class="ticket-status-pill open" id="chat-ticket-status">Menunggu IT</span>
+            <button type="button" onclick="portalApp.manualRefreshChat()" title="Segarkan Chat Sekarang" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 50%; width: 26px; height: 26px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🔄</button>
           </div>
+        </div>
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 5px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 0.70rem; color: #065f46;">
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <span class="status-dot" style="background: #10b981; width: 7px; height: 7px; border-radius: 50%; animation: pulseGreen 1.5s infinite;"></span>
+            <span style="font-weight: 750;">Chat Terhubung Real-Time (Auto-Refresh)</span>
+          </div>
+          <span style="font-size: 0.66rem; color: #059669;">Sync 2.5s</span>
         </div>
 
         <!-- Ticket Summary Card -->
