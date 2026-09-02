@@ -8271,10 +8271,14 @@ class NocApp {
     if (savedUserJson) {
       try {
         const parsed = JSON.parse(savedUserJson);
-        const liveUser = this.users.find(u => u.id === parsed.id || u.username === parsed.username);
+        if (parsed && (parsed.id || parsed.username)) {
+          // If this.users has the user, use that; otherwise use parsed session directly
+          const liveUser = (Array.isArray(this.users) && this.users.length > 0)
+            ? this.users.find(u => u.id === parsed.id || u.username === parsed.username)
+            : null;
 
-        if (liveUser && liveUser.status === 'Active') {
-          this.currentUser = liveUser;
+          this.currentUser = liveUser || parsed;
+          document.documentElement.classList.add('user-logged-in');
           if (loginOverlay) loginOverlay.classList.add('login-hidden');
           this.applyUserPermissions();
           return;
@@ -8285,6 +8289,7 @@ class NocApp {
     }
 
     // No valid session, show login overlay
+    document.documentElement.classList.remove('user-logged-in');
     if (loginOverlay) {
       loginOverlay.classList.remove('login-hidden');
     }
@@ -8410,10 +8415,22 @@ class NocApp {
   }
 
   async logout() {
+    // If this.currentUser is not yet in memory, retrieve from storage
+    if (!this.currentUser) {
+      try {
+        const s = localStorage.getItem('kipina_noc_current_user') || sessionStorage.getItem('kipina_noc_current_user');
+        if (s) this.currentUser = JSON.parse(s);
+      } catch (e) {}
+    }
+
+    const userName = this.currentUser?.name || this.currentUser?.username || 'User';
+    const userHandle = this.currentUser?.username || 'user';
+    const userRole = this.currentUser?.role || 'Staff';
+
     const confirmed = await this.showConfirmModal({
       title: 'Konfirmasi Keluar (Logout)?',
-      message: `Apakah Anda yakin ingin mengakhiri sesi login ${this.currentUser?.name || ''} dan keluar dari Dashboard NOC?`,
-      meta: `<span class="ip-badge" style="font-size: 0.75rem; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-weight: 700;">USER: @${this.currentUser?.username || '-'} • ${this.currentUser?.role || '-'}</span>`,
+      message: `Apakah Anda yakin ingin mengakhiri sesi login ${userName} dan keluar dari Dashboard NOC?`,
+      meta: `<span class="ip-badge" style="font-size: 0.75rem; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-weight: 700;">USER: @${userHandle} • ${userRole}</span>`,
       type: 'warning',
       confirmText: '🚪 Ya, Keluar',
       cancelText: 'Batal'
@@ -8427,6 +8444,9 @@ class NocApp {
 
     this.currentUser = null;
 
+    // CRITICAL FIX: Remove user-logged-in class from <html> so CSS displays the login overlay!
+    document.documentElement.classList.remove('user-logged-in');
+
     const loginOverlay = document.getElementById('login-screen-overlay');
     if (loginOverlay) {
       loginOverlay.classList.remove('login-hidden');
@@ -8436,6 +8456,11 @@ class NocApp {
     if (pwdInp) pwdInp.value = '';
 
     this.showToast('Anda telah berhasil keluar dari sistem NOC.', 'info');
+
+    // Smoothly reload page after 300ms to guarantee completely clean, fresh state
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
   }
 
   applyUserPermissions() {
