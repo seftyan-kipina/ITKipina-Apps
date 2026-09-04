@@ -154,6 +154,8 @@ class NocApp {
     if (dot) dot.className = 'status-dot';
 
     const poll = async () => {
+      // Pause saat tab tidak aktif — hemat bandwidth
+      if (document.visibilityState === 'hidden') return;
       try {
         const res = await fetch('/api/telemetry');
         if (res.ok) {
@@ -167,7 +169,16 @@ class NocApp {
     };
 
     poll();
-    this.httpPollingTimer = setInterval(poll, 3000);
+    // 15 detik cukup untuk telemetry via HTTP (sebelumnya 3 detik)
+    this.httpPollingTimer = setInterval(poll, 15000);
+
+    // Resume polling saat user kembali ke tab
+    if (!this._visibilityBound) {
+      this._visibilityBound = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') poll();
+      });
+    }
   }
 
   stopHttpPolling() {
@@ -2047,16 +2058,31 @@ class NocApp {
     this.startTicketAutoRefresh();
   }
 
+  // Helper: cek apakah WebSocket sedang terhubung aktif
+  _isWsActive() {
+    return this.ws && this.ws.readyState === WebSocket.OPEN;
+  }
+
   startTicketAutoRefresh() {
     if (this.ticketPollingTimer) return;
+
+    // Jika WebSocket aktif, server sudah push tickets_sync — tidak perlu polling
+    // Polling hanya sebagai safety-net di Vercel/serverless
     this.ticketPollingTimer = setInterval(async () => {
-      // Auto poll jika user berada di tab tickets atau ada tiket terpilih
-      const tabEl = document.getElementById('tab-tickets');
-      const isTicketsTabActive = this.activeTab === 'tab-tickets' || (tabEl && tabEl.classList.contains('active'));
-      if (isTicketsTabActive || this.selectedTicketId) {
-        await this.pollTicketUpdates();
-      }
-    }, 3000);
+      if (document.visibilityState === 'hidden') return; // pause jika tab tidak aktif
+      if (this._isWsActive()) return;                    // skip jika WebSocket sudah handle
+      await this.pollTicketUpdates();
+    }, 30000); // 30 detik — safety-net saja, bukan sumber utama
+
+    // Juga trigger saat user kembali ke tab (jika belum terikat)
+    if (!this._ticketVisibilityBound) {
+      this._ticketVisibilityBound = true;
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible' && !this._isWsActive()) {
+          await this.pollTicketUpdates();
+        }
+      });
+    }
   }
 
   stopTicketAutoRefresh() {
@@ -2068,45 +2094,57 @@ class NocApp {
 
   async pollTicketUpdates() {
     try {
-      const res = await fetch('/api/tickets');
+      // Kirim ETag yang tersimpan agar server bisa reply 304 jika tidak ada perubahan
+      const headers = {};
+      if (this._ticketsETag) headers['If-None-Match'] = this._ticketsETag;
+
+      const res = await fetch('/api/tickets', { headers });
+
+      // 304 = tidak ada perubahan — tidak perlu parse/render apapun
+      if (res.status === 304) return;
       if (!res.ok) return;
+
+      // Simpan ETag baru untuk request berikutnya
+      const newETag = res.headers.get('ETag');
+      if (newETag) this._ticketsETag = newETag;
+
       const data = await res.json();
       if (!data.success || !Array.isArray(data.tickets)) return;
 
-      const serverTickets = data.tickets;
-      const currentIds = new Set(this.tickets.map(t => t.id));
-      const currentSelected = this.selectedTicketId ? this.tickets.find(t => t.id === this.selectedTicketId) : null;
-      const currentCommentCount = currentSelected && currentSelected.comments ? currentSelected.comments.length : 0;
-
-      // Deteksi tiket baru berdasarkan ID (lebih akurat dari count saja)
-      const newTickets = serverTickets.filter(t => !currentIds.has(t.id));
-
-      // Find matching server ticket
-      const newSelected = this.selectedTicketId ? serverTickets.find(t => t.id === this.selectedTicketId) : null;
-      const newCommentCount = newSelected && newSelected.comments ? newSelected.comments.length : 0;
-
-      const hasNewTickets = newTickets.length > 0;
-      const hasCountChange = serverTickets.length !== this.tickets.length;
-      const hasNewComment = newCommentCount !== currentCommentCount;
-      const hasStatusChange = currentSelected && newSelected && (currentSelected.status !== newSelected.status || currentSelected.priority !== newSelected.priority);
-
-      if (hasNewTickets || hasCountChange || hasNewComment || hasStatusChange) {
-        this.tickets = serverTickets;
-        this.normalizeTickets();
-        this.saveTicketsLocal();
-        this.updateTicketKPIs();
-        this.renderTickets(true);
-
-        // Notifikasi toast bila ada tiket baru masuk dari cabang
-        if (hasNewTickets) {
-          this.showToast(`🔔 ${newTickets.length} tiket baru masuk dari cabang!`, 'success');
-        }
-
-        if (this.selectedTicketId && newSelected) {
-          this.updateTicketChatMessagesSmoothly(newSelected, hasNewComment);
-        }
-      }
+      this._applyTicketUpdate(data.tickets);
     } catch (e) {}
+  }
+
+  // Terapkan update tiket dari server (dipakai oleh polling & WebSocket)
+  _applyTicketUpdate(serverTickets) {
+    const currentIds = new Set(this.tickets.map(t => t.id));
+    const currentSelected = this.selectedTicketId ? this.tickets.find(t => t.id === this.selectedTicketId) : null;
+    const currentCommentCount = currentSelected && currentSelected.comments ? currentSelected.comments.length : 0;
+
+    const newTickets = serverTickets.filter(t => !currentIds.has(t.id));
+    const newSelected = this.selectedTicketId ? serverTickets.find(t => t.id === this.selectedTicketId) : null;
+    const newCommentCount = newSelected && newSelected.comments ? newSelected.comments.length : 0;
+
+    const hasNewTickets = newTickets.length > 0;
+    const hasCountChange = serverTickets.length !== this.tickets.length;
+    const hasNewComment = newCommentCount !== currentCommentCount;
+    const hasStatusChange = currentSelected && newSelected &&
+      (currentSelected.status !== newSelected.status || currentSelected.priority !== newSelected.priority);
+
+    if (hasNewTickets || hasCountChange || hasNewComment || hasStatusChange) {
+      this.tickets = serverTickets;
+      this.normalizeTickets();
+      this.saveTicketsLocal();
+      this.updateTicketKPIs();
+      this.renderTickets(true);
+
+      if (hasNewTickets) {
+        this.showToast(`🔔 ${newTickets.length} tiket baru masuk dari cabang!`, 'success');
+      }
+      if (this.selectedTicketId && newSelected) {
+        this.updateTicketChatMessagesSmoothly(newSelected, hasNewComment);
+      }
+    }
   }
 
   renderTicketCommentItem(m) {
@@ -2235,37 +2273,37 @@ class NocApp {
   }
 
   async fetchTicketsFromServer() {
-    try {
-      const res = await fetch('/api/tickets');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.tickets) && data.tickets.length > 0) {
-        this.tickets = data.tickets;
-        this.normalizeTickets();
-        this.saveTicketsLocal();
-        return;
-      }
-    } catch (e) {}
-
+    // Coba dari localStorage dulu sebagai cache awal (load lebih cepat)
     const saved = localStorage.getItem('kipina_noc_tickets_data') || localStorage.getItem('kipina_noc_tickets_v2');
     if (saved) {
       try {
         this.tickets = JSON.parse(saved);
         this.normalizeTickets();
-        return;
       } catch (e) {}
     }
+
+    // Kemudian fetch dari server (dengan ETag jika ada)
+    try {
+      const headers = {};
+      if (this._ticketsETag) headers['If-None-Match'] = this._ticketsETag;
+      const res = await fetch('/api/tickets', { headers });
+      if (res.status === 304) return; // data sudah up-to-date
+      const newETag = res.headers.get('ETag');
+      if (newETag) this._ticketsETag = newETag;
+      const data = await res.json();
+      if (data.success && Array.isArray(data.tickets) && data.tickets.length > 0) {
+        this.tickets = data.tickets;
+        this.normalizeTickets();
+        this.saveTicketsLocal();
+      }
+    } catch (e) {}
   }
 
+  // Dipanggil dari WebSocket saat server push tickets_sync
   handleTicketsSync(tickets) {
-    this.tickets = tickets;
-    this.normalizeTickets();
-    this.saveTicketsLocal();
-    this.renderTickets();
-    this.updateTicketKPIs();
-    if (this.selectedTicketId) {
-      const t = this.tickets.find(tk => tk.id === this.selectedTicketId);
-      if (t) this.updateTicketChatMessagesSmoothly(t, true);
-    }
+    // Invalidate ETag karena server sudah push data baru via WS
+    this._ticketsETag = null;
+    this._applyTicketUpdate(tickets);
   }
 
   normalizeTickets() {

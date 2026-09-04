@@ -782,19 +782,33 @@ function broadcastTicketsUpdate() {
   });
 }
 
-// Get all tickets
+// Get all tickets — dengan ETag untuk efisiensi bandwidth (304 Not Modified jika tidak ada perubahan)
 app.get('/api/tickets', async (req, res) => {
+  let tickets = globalTickets;
+
   if (process.env.MONGODB_URI) {
     try {
       const dbTickets = await TicketModel.find({}).sort({ timestamp: -1 }).lean();
-      if (dbTickets && dbTickets.length > 0) {
-        return res.json({ success: true, tickets: dbTickets });
-      }
+      if (dbTickets && dbTickets.length > 0) tickets = dbTickets;
     } catch (e) {
       console.warn('[DB] Failed to query tickets from MongoDB:', e.message);
     }
   }
-  res.json({ success: true, tickets: globalTickets });
+
+  // Buat ETag ringan: jumlah tiket + ID+komentar tiket terbaru
+  const latestTicket = tickets[0];
+  const etagSource = `${tickets.length}-${latestTicket ? latestTicket.id + '-' + (latestTicket.comments ? latestTicket.comments.length : 0) : 'empty'}`;
+  const etag = `"${Buffer.from(etagSource).toString('base64')}"`;
+
+  res.setHeader('ETag', etag);
+  res.setHeader('Cache-Control', 'no-cache');
+
+  // Jika client sudah punya data yang sama, cukup 304 (0 byte response body)
+  if (req.headers['if-none-match'] === etag) {
+    return res.status(304).end();
+  }
+
+  res.json({ success: true, tickets });
 });
 
 // Create new ticket from branch or NOC
