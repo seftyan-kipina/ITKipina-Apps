@@ -8,6 +8,7 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "mongoose": "^9.9.4",
